@@ -8,6 +8,10 @@
 from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
+
+led = Pin(25, Pin.OUT)
+
+
 baud = 115200
 class RYLR998:
     def __init__(self, port_num=0, tx_pin='', rx_pin=''):
@@ -23,9 +27,10 @@ class RYLR998:
                 
     def cmd(self, lora_cmd):
         self._uart.write('{}\r\n'.format(lora_cmd))
-        while(self._uart.any()==0):
-            pass
-        reply = self._uart.readline()
+        sleep(2)
+        #while(self._uart.any()==0):
+        #    pass
+        reply = self._uart.read()
         print(reply.decode().strip('\r\n'))
     
     def test(self):
@@ -80,17 +85,24 @@ class RYLR998:
             #print(msg.strip('\r\n'))
             return msg.strip('\r\n')
 
-    
+#Reset the Lora module
+#lora = RYLR998(tx_pin=12,rx_pin=13)
+#lora.cmd('AT+RESET')
+#sleep(3)
+
 lora = RYLR998(tx_pin=12,rx_pin=13) # Sets the UART port to be used. Defaults to UART0 with tx Pin 0 and
                 #rx Pin 1.  For UART1, add port_num=1 in the () which defaults to tx Pin 4
                 #and rx Pin 5.  Optionally, you can assign the variables 'tx_pin' and 'rx_pin'
                 # with the GPIO values you want.  Example: RYLR998(tx_pin=12,rx_pin=13)
-#sleep_ms(100)
-#lora.reset()
-sleep(1)
+sleep(2)
+lora.cmd('AT+PARAMETER=8,7,1,12')
+sleep(2)
+
 lora.set_addr(1)  # Sets the LoRa address
+sleep(2)
 #Optionally create a NetworkId for your group of transceivers
 lora.set_networkid(secrets.lora_nid)
+sleep(2)
 #Optionally create a 8 char password for simple encryption (chars 0-9 and A-F only), don't lose power on either side if you set password
 #this has been VERY unreliable.
 #lora.set_pswd(secrets.lora_pswd)
@@ -108,7 +120,9 @@ while True:
     sleep(1)'''
 
 #Send msg's and check for replies
+led.toggle()
 iter = 1
+print(f"Current Network Id: {lora.cmd('AT+NETWORKID?')}")
 while True:
     msgToSend = f'Sending message number {iter}'
     lora.send_msg(2,msgToSend)
@@ -117,7 +131,10 @@ while True:
     test = lora.read_msg()
     if '+RCV=' in test:
         print('got reply')
+        #led.toggle()
     else:
         print('no reply')
-    sleep(5)
+    sleep(2)
+
+
 
