@@ -8,18 +8,18 @@
 from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
-
+baud = 115200
 class RYLR998:
     def __init__(self, port_num=0, tx_pin='', rx_pin=''):
         if tx_pin=='' and rx_pin=='':
-            self._uart = UART(port_num, baudrate=115200)
+            self._uart = UART(port_num, baudrate=baud)
             print(self._uart)
         else:
             uart0tx = [0,12,16]
             if tx_pin in uart0tx:
-                self._uart = UART(0, baudrate=115200, tx=Pin(tx_pin), rx=Pin(rx_pin))
+                self._uart = UART(0, baudrate=baud, tx=Pin(tx_pin), rx=Pin(rx_pin))
             else:
-                self._uart = UART(1, baudrate=115200, tx=Pin(tx_pin), rx=Pin(rx_pin))
+                self._uart = UART(1, baudrate=baud, tx=Pin(tx_pin), rx=Pin(rx_pin))
                 
     def cmd(self, lora_cmd):
         self._uart.write('{}\r\n'.format(lora_cmd))
@@ -47,7 +47,7 @@ class RYLR998:
         while(self._uart.any()==0):
             pass
         reply = self._uart.readline()
-        print(reply.decode())
+        print(reply.decode("utf-8"))
 
     def set_networkid(self, netId):
         self._uart.write('AT+NETWORKID={}\r\n'.format(netId))
@@ -58,10 +58,10 @@ class RYLR998:
 
     def send_msg(self, addr, msg): #max message size: 240 bytes
         self._uart.write('AT+SEND={},{},{}\r\n'.format(addr,len(msg),msg))
-        while(self._uart.any()<=2):
-            pass
-        reply = self._uart.readline()
-        print(reply.decode().strip('\r\n'))
+        #while(self._uart.any()==0):
+        #    pass
+        #reply = self._uart.readline()
+        #print(f"send_msg: {reply.decode().strip('\r\n')}")
 
     def reset(self):
         self._uart.write('AT+RESET\r\n')
@@ -72,30 +72,31 @@ class RYLR998:
 
     def read_msg(self):
         if self._uart.any()==0:
-            #print('Nothing to show.')
-            return 'Nothing to show'
+            print('Nothing to show.')
         else:
             msg = ''
-            texts = []
             while(self._uart.any()):
                 msg = msg + self._uart.read(self._uart.any()).decode()
-            return(msg.split('+'))
+            #print(msg.strip('\r\n'))
+            return msg.strip('\r\n')
 
     
 lora = RYLR998(tx_pin=12,rx_pin=13) # Sets the UART port to be used. Defaults to UART0 with tx Pin 0 and
                 #rx Pin 1.  For UART1, add port_num=1 in the () which defaults to tx Pin 4
                 #and rx Pin 5.  Optionally, you can assign the variables 'tx_pin' and 'rx_pin'
                 # with the GPIO values you want.  Example: RYLR998(tx_pin=12,rx_pin=13)
-sleep_ms(100)
-lora.reset()
+#sleep_ms(100)
+#lora.reset()
 sleep(1)
-lora.set_addr(2)  # Sets the LoRa address
+lora.set_addr(1)  # Sets the LoRa address
 #Optionally create a NetworkId for your group of transceivers
 lora.set_networkid(secrets.lora_nid)
-#Optionally create a 8 char password for simple encryption (chars 0-9 and A-F only)
-lora.set_pswd(secrets.lora_pswd)
+#Optionally create a 8 char password for simple encryption (chars 0-9 and A-F only), don't lose power on either side if you set password
+#this has been VERY unreliable.
+#lora.set_pswd(secrets.lora_pswd)
 
 #Standby to read msg's as they come in
+'''
 while True:
     test = lora.read_msg()
     if type(test) == list:
@@ -104,4 +105,19 @@ while True:
                 print(item.split(',')[2])
                 #Optionally reply to sender
                 lora.send_msg(item.split(',')[0].replace('RCV=',''),'Yep')
+    sleep(1)'''
+
+#Send msg's and check for replies
+iter = 1
+while True:
+    msgToSend = f'Sending message number {iter}'
+    lora.send_msg(2,msgToSend)
+    iter += 1
     sleep(1)
+    test = lora.read_msg()
+    if '+RCV=' in test:
+        print('got reply')
+    else:
+        print('no reply')
+    sleep(5)
+
