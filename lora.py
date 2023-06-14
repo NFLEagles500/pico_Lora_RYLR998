@@ -10,6 +10,9 @@ from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
 
+#You'll need to set a unique client address for each lora device you run this on.  Set it below
+clientAddr = 
+
 led = Pin(25, Pin.OUT)
 
 baud = 115200
@@ -102,7 +105,7 @@ sleep(2)
 lora.cmd('AT+PARAMETER=8,7,1,12')
 sleep(2)
 
-lora.set_addr(1287)  # Sets the LoRa address
+lora.set_addr(clientAddr)  # Sets the LoRa address
 sleep(2)
 #Optionally create a NetworkId for your group of transceivers
 lora.set_networkid(secrets.lora_nid)
