@@ -18,7 +18,7 @@ if 'Pico W' in devCheck.machine:
     led = Pin('LED', Pin.OUT)
 else:
     led = Pin(25, Pin.OUT)
-
+led.value(0)
 baud = 115200
 class RYLR998:
     def __init__(self, port_num=0, tx_pin='', rx_pin=''):
@@ -39,9 +39,9 @@ class RYLR998:
             pass
         reply = self._uart.read()
         sleep(0.5)
-        print(reply.decode().strip('\r\n'))
         if retrn:
             return reply.decode().strip('\r\n')
+        print(reply.decode().strip('\r\n'))
             
     def test(self):
         self._uart.write('AT\r\n') #was 'ATrn'
@@ -57,19 +57,27 @@ class RYLR998:
         reply = self._uart.readline()
         print('Address set to: {}'.format(addr))
         
-    def set_pswd(self, cpin):
+    def set_pswd(self, cpin, retrn=False):
         self._uart.write('AT+CPIN={}\r\n'.format(cpin))
+        sleep(2)
         while(self._uart.any()==0):
             pass
-        reply = self._uart.readline()
-        print(reply.decode("utf-8"))
+        reply = self._uart.read()
+        sleep(0.5)
+        if retrn:
+            return reply.decode().strip('\r\n')
+        print(reply.decode().strip('\r\n'))
 
-    def set_networkid(self, netId):
+    def set_networkid(self, netId, retrn=False):
         self._uart.write('AT+NETWORKID={}\r\n'.format(netId))
+        sleep(2)
         while(self._uart.any()==0):
             pass
-        reply = self._uart.readline()
-        print(reply.decode())
+        reply = self._uart.read()
+        sleep(0.5)
+        if retrn:
+            return reply.decode().strip('\r\n')
+        print(reply.decode().strip('\r\n'))
 
     def send_msg(self, addr, msg): #max message size: 240 bytes
         self._uart.write('AT+SEND={},{},{}\r\n'.format(addr,len(msg),msg))
@@ -77,13 +85,6 @@ class RYLR998:
         #    pass
         #reply = self._uart.readline()
         #print(f"send_msg: {reply.decode().strip('\r\n')}")
-
-    def reset(self):
-        self._uart.write('AT+RESET\r\n')
-        #Need to get +RESET AND +READY before proceeding
-        while(self._uart.any()<= 15):
-            pass
-        print(self._uart.read().decode().strip('\r\n'))
 
     def read_msg(self):
         if self._uart.any()==0:
@@ -94,34 +95,41 @@ class RYLR998:
                 msg = msg + self._uart.read(self._uart.any()).decode()
             return msg.strip('\r\n')
 
-#Reset the Lora module
-#lora = RYLR998(tx_pin=12,rx_pin=13)
-#lora.cmd('AT+RESET')
-#sleep(3)
 
 lora = RYLR998(tx_pin=12,rx_pin=13) # Sets the UART port to be used. Defaults to UART0 with tx Pin 0 and
                 #rx Pin 1.  For UART1, add port_num=1 in the () which defaults to tx Pin 4
                 #and rx Pin 5.  Optionally, you can assign the variables 'tx_pin' and 'rx_pin'
                 # with the GPIO values you want.  Example: RYLR998(tx_pin=12,rx_pin=13)
 sleep(2)
+#Reset the module
+lora.cmd('AT+RESET')
+sleep(2)
+#Set parameters
 lora.cmd('AT+PARAMETER=8,7,1,12')
 sleep(2)
-
-lora.set_addr(clientAddr)  # Sets the LoRa address
+#Set unique client address
+lora.set_addr(clientAddr) 
 sleep(2)
 #Optionally create a NetworkId for your group of transceivers
-lora.set_networkid(secrets.lora_nid)
-sleep(2)
-chkNetId = lora.cmd('AT+NETWORKID?',retrn=True)
-print(f"Current Network Id: {chkNetId.split('=')[1]}")
+if hasattr(secrets, 'lora_nid'):
+    lora.set_networkid(secrets.lora_nid)
+    sleep(2)
+
 #Optionally create a 8 char password for simple encryption (chars 0-9 and A-F only), don't lose power on either side if you set password
-#this has been VERY unreliable.
-#lora.set_pswd(secrets.lora_pswd)
+if hasattr(secrets, 'lora_pswd'):
+    lora.set_pswd(secrets.lora_pswd)
+    sleep(2)
+
+#If a console is connected, lets return all the lora attributes for quick debugging
+print(f"ClientId: {lora.cmd('AT+ADDRESS?',retrn=True).split('=')[1]}")
+print(f"Network Id: {lora.cmd('AT+NETWORKID?',retrn=True).split('=')[1]}")
+print(f"Password: {lora.cmd('AT+CPIN?',retrn=True).split('=')[1]}")
 
 #Below are the two loops to choose from.  Either set up to read messages, or setup to send messages
 
 #Standby to read msg's as they come in
-led.value(1)
+led.value(1) #In the case of reading messages, I just power on the onboard LED to let me
+             #know the module is initiallized and running through the loop
 while True:
     test = lora.read_msg()
     if type(test) == list:
@@ -148,6 +156,3 @@ while True:
     else:
         print('no reply')
     sleep(0.5)'''
-
-
-
