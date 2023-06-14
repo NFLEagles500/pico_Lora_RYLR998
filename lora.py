@@ -1,3 +1,4 @@
+#GT-U7 GPS Module guide: https://microcontrollerslab.com/neo-6m-gps-module-raspberry-pi-pico-micropython/
 #About Device:  https://reyax.com/products/RYLR998
 #AT Commands for Device:  https://reyax.com//upload/products_download/download_file/LoRa_AT_Command_RYLR998_RYLR498_EN.pdf
 #This script was updated for the RYLR998, with a Raspberry Pico, using
@@ -8,9 +9,9 @@
 from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
+import lcd1602
 
 led = Pin(25, Pin.OUT)
-
 
 baud = 115200
 class RYLR998:
@@ -25,14 +26,18 @@ class RYLR998:
             else:
                 self._uart = UART(1, baudrate=baud, tx=Pin(tx_pin), rx=Pin(rx_pin))
                 
-    def cmd(self, lora_cmd):
+    def cmd(self, lora_cmd, retrn=False):
+        print(f"retrn value is {retrn}")
         self._uart.write('{}\r\n'.format(lora_cmd))
         sleep(2)
-        #while(self._uart.any()==0):
-        #    pass
+        while(self._uart.any()==0):
+            pass
         reply = self._uart.read()
+        sleep(0.5)
         print(reply.decode().strip('\r\n'))
-    
+        if retrn:
+            return reply.decode().strip('\r\n')
+            
     def test(self):
         self._uart.write('AT\r\n') #was 'ATrn'
         while(self._uart.any()==0):
@@ -98,14 +103,18 @@ sleep(2)
 lora.cmd('AT+PARAMETER=8,7,1,12')
 sleep(2)
 
-lora.set_addr(1)  # Sets the LoRa address
+lora.set_addr(1287)  # Sets the LoRa address
 sleep(2)
 #Optionally create a NetworkId for your group of transceivers
 lora.set_networkid(secrets.lora_nid)
 sleep(2)
+chkNetId = lora.cmd('AT+NETWORKID?',retrn=True)
+print(f"Current Network Id: {chkNetId.split('=')[1]}")
 #Optionally create a 8 char password for simple encryption (chars 0-9 and A-F only), don't lose power on either side if you set password
 #this has been VERY unreliable.
 #lora.set_pswd(secrets.lora_pswd)
+
+#Below are the two loops to choose from.  Either set up to read messages, or setup to send messages
 
 #Standby to read msg's as they come in
 '''
@@ -117,12 +126,11 @@ while True:
                 print(item.split(',')[2])
                 #Optionally reply to sender
                 lora.send_msg(item.split(',')[0].replace('RCV=',''),'Yep')
-    sleep(1)'''
+    sleep(1)
 
 #Send msg's and check for replies
 led.toggle()
 iter = 1
-print(f"Current Network Id: {lora.cmd('AT+NETWORKID?')}")
 while True:
     msgToSend = f'Sending message number {iter}'
     lora.send_msg(2,msgToSend)
@@ -130,11 +138,11 @@ while True:
     sleep(1)
     test = lora.read_msg()
     if '+RCV=' in test:
-        print('got reply')
+        print(test)
         #led.toggle()
+
     else:
         print('no reply')
-    sleep(2)
-
+    sleep(0.5)'''
 
 
