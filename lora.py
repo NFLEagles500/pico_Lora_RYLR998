@@ -10,10 +10,14 @@ from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
 
-#You'll need to set a unique client address for each lora device you run this on.  Set it below
 clientAddr = 
-
-led = Pin(25, Pin.OUT)
+#Check for Pico or Pico W to set led pin (pico=25,picow='LED')
+import os
+devCheck = os.uname()
+if 'Pico W' in devCheck.machine:
+    led = Pin('LED', Pin.OUT)
+else:
+    led = Pin(25, Pin.OUT)
 
 baud = 115200
 class RYLR998:
@@ -29,7 +33,6 @@ class RYLR998:
                 self._uart = UART(1, baudrate=baud, tx=Pin(tx_pin), rx=Pin(rx_pin))
                 
     def cmd(self, lora_cmd, retrn=False):
-        print(f"retrn value is {retrn}")
         self._uart.write('{}\r\n'.format(lora_cmd))
         sleep(2)
         while(self._uart.any()==0):
@@ -84,12 +87,11 @@ class RYLR998:
 
     def read_msg(self):
         if self._uart.any()==0:
-            print('Nothing to show.')
+            return 'Nothing to show.'
         else:
             msg = ''
             while(self._uart.any()):
                 msg = msg + self._uart.read(self._uart.any()).decode()
-            #print(msg.strip('\r\n'))
             return msg.strip('\r\n')
 
 #Reset the Lora module
@@ -119,7 +121,7 @@ print(f"Current Network Id: {chkNetId.split('=')[1]}")
 #Below are the two loops to choose from.  Either set up to read messages, or setup to send messages
 
 #Standby to read msg's as they come in
-'''
+led.value(1)
 while True:
     test = lora.read_msg()
     if type(test) == list:
@@ -129,7 +131,7 @@ while True:
                 #Optionally reply to sender
                 lora.send_msg(item.split(',')[0].replace('RCV=',''),'Yep')
     sleep(1)
-
+'''
 #Send msg's and check for replies
 led.toggle()
 iter = 1
@@ -146,5 +148,6 @@ while True:
     else:
         print('no reply')
     sleep(0.5)'''
+
 
 
