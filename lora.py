@@ -9,7 +9,6 @@
 from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
-import lcd1602
 
 led = Pin(25, Pin.OUT)
 
