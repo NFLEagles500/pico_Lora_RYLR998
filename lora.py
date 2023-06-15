@@ -6,7 +6,7 @@
     # More details can be found in TechToTinker.blogspot.com 
     # George Bantique | tech.to.tinker@gmail.com
 
-from machine import Pin, UART
+
 from time import sleep_ms, sleep
 import secrets
 
@@ -20,13 +20,16 @@ recieverAddr = int()
 parameters = '8,7,1,12'
 
 
-#Check for Pico or Pico W to set led pin (pico=25,picow='LED')
+#Check for Pico or Pico W to set on board led pin (pico=25,picow='LED')
+from machine import Pin, UART
 import os
-devCheck = os.uname()
+devCheck = os.uname() #This is a tuple with key/value pairs.  machine has the string we want to compare
 if 'Pico W' in devCheck.machine:
     led = Pin('LED', Pin.OUT)
-else:
+elif 'Pico' in devCheck.machine:
     led = Pin(25, Pin.OUT)
+else:
+    print("Script written for Raspberry Pico devices.  Can't determine your onboard LED pin.")
 
 #LED off while initializing Lora
 led.value(0)
