@@ -10,7 +10,7 @@ from machine import Pin, UART
 from time import sleep_ms, sleep
 import secrets
 
-clientAddr = int() #Each client on your Lora network must have a unique address.
+clientAddr = int(1304) #Each client on your Lora network must have a unique address.
 #Set the following if you plan to send messages to another client.
 #Note that if you set the number 0, anything you send is broadcast to all members.
 recieverAddr = int()
@@ -156,17 +156,18 @@ moduleParams = lora.cmd('AT+PARAMETER?',retrn=True).split('=')[1]
 if str(clientAddr) not in str(moduleAddr):
     print(f"{moduleAddr} not {clientAddr}")
     loraModuleReset = True
-elif hasattr(secrets, 'lora_nid'):
+if hasattr(secrets, 'lora_nid'):
     moduleNetId = lora.cmd('AT+NETWORKID?',retrn=True).split('=')[1]
     if str(secrets.lora_nid) not in str(moduleNetId):
         print(f"{moduleNetId} not {secrets.lora_nid}")
         loraModuleReset = True
-elif hasattr(secrets, 'lora_pswd'):
+if hasattr(secrets, 'lora_pswd'):
     modulePswd = lora.cmd('AT+CPIN?',retrn=True).split('=')[1]
     if str(secrets.lora_pswd) not in str(modulePswd):
         print(f"{modulePswd} not {secrets.lora_pswd}")
         loraModuleReset = True
-elif str(parameters) not in str(moduleParams):
+
+if str(parameters) not in str(moduleParams):
     print(f"{moduleParams} not {parameters}")
     loraModuleReset = True
 
@@ -186,6 +187,7 @@ led.value(1) #In the case of reading messages, I just power on the onboard LED t
              #know the module is initiallized and running through the loop
 while True:
     test = lora.read_msg()
+    print(test)
     if '+RCV' in test:
         test = test.split(',')
         clientId = test[0].split('=')[1]
